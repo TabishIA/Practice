@@ -1,0 +1,91 @@
+use institute
+
+db.createCollection("employees")
+
+Step 2: Insert Sample Data
+
+db.employees2.insertMany([
+  { empid: 1, ename: "Sam", city: "Ahmedabad", department: "CSE", educational_background: "B.Tech", salary: 60000, post: "Developer", join_date: new Date("2022-01-20"), leaving_date: null, skills: ["Programming", "Databases"] },
+  { empid: 2, ename: "Maya", city: "Baroda", department: "CSE", educational_background: "MCA", salary: 65000, post: "Developer", join_date: new Date("2022-02-20"), leaving_date: null, skills: ["Programming"] },
+  { empid: 3, ename: "John", city: "Pune", department: "ET", educational_background: "B.Com", salary: 55000, post: "Manager", join_date: new Date("2021-03-15"), leaving_date: null, skills: ["Management"] },
+  { empid: 4, ename: "Sophie", city: "Pune", department: "FE", educational_background: "B.Sc", salary: 58000, post: "Analyst", join_date: new Date("2021-07-20"), leaving_date: null, skills: ["Programming", "Data Analysis"] },
+  { empid: 5, ename: "Mark", city: "Ahmedabad", department: "ETC", educational_background: "B.Tech", salary: 72000, post: "Senior Developer", join_date: new Date("2020-04-20"), leaving_date: null, skills: ["Programming", "Cloud"] },
+])
+
+Queries
+List all the employees from the institute.
+db.employees.find({})
+
+List the employee details that are from Baroda or Ahmedabad and working in the CSE department.
+db.employees.find({ city: { $in: ["Baroda", "Ahmedabad"] }, department: "CSE" })
+
+List the empid, ename, department number, and skill of employees whose join date is the 20th of any month.
+db.Employees.find(
+  { $expr: { $eq: [{ $dayOfMonth: "$join_date" }, 20] } },
+  { empid: 1, ename: 1, department: 1, skills: 1, _id: 0 }
+);
+
+
+Calculate total experience of employees. Consider today’s date.
+const today = new Date();
+
+db.Employees.aggregate([
+  {
+    $addFields: {
+      total_experience: {
+        $divide: [{ $subtract: [today, "$join_date"] }, 1000 * 60 * 60 * 24 * 365]
+      }
+    }
+  },
+  { $project: { empid: 1, ename: 1, total_experience: { $round: ["$total_experience", 2] }, _id: 0 } }
+]);
+
+
+
+List the name of employees whose name starts with 's' or 'm' who are working in the FE department and have "Programming" skill.
+db.employees.find({ 
+  ename: { $regex: /^[sSmM]/i }, 
+  department: "FE", 
+  skills: "Programming" 
+}, { ename: 1 })
+
+Count the number of employees working in the ETC department of Pune location.
+db.employees.countDocuments({ department: "ETC", city: "Pune" })
+
+Calculate department-wise total salary and display only those departments which pay the maximum salary.
+db.employees.aggregate([
+  { $group: { _id: "$department", totalSalary: { $sum: "$salary" } } },
+  { $sort: { totalSalary: -1 } },
+  { $limit: 1 }
+])
+
+Perform Create Index, get Index, and drop index operation on collection.
+// Create an index on the 'empid' field
+db.employees.createIndex({ empid: 1 })
+
+// Get the indexes
+db.employees.getIndexes()
+
+// Drop the index
+db.employees.dropIndex("empid_1")
+
+Using MapReduce/Aggregation, display the total number of employees from each department.
+db.employees.aggregate([
+  { $group: { _id: "$department", totalEmployees: { $sum: 1 } } }
+])
+
+var mapFunction = function() {
+  emit(this.department, 1);
+};
+var reduceFunction = function(key, values) {
+  return Array.sum(values);
+};
+
+db.employees.mapReduce(
+  mapFunction,
+  reduceFunction,
+  { out: "employee_count_by_department" }
+);
+
+db.employee_count_by_department.find();
+

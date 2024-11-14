@@ -1,0 +1,117 @@
+use order_management
+
+db.createCollection("orders")
+
+
+Step 2: Insert Sample Data
+
+db.OMS2.insertMany([
+  { order_id: 1, customer_name: "Alice", product: "Laptop", price: 50000, order_date: new Date("2022-01-15"), quantity: 2, customer_mobile: "1234567890" },
+  { order_id: 2, customer_name: "Bob", product: "PenDrive", price: 5000, order_date: new Date("2022-02-10"), quantity: 15, customer_mobile: "2345678901" },
+  { order_id: 3, customer_name: "Charlie", product: "Monitor", price: 30000, order_date: new Date("2022-03-05"), quantity: 5, customer_mobile: "3456789012" },
+  { order_id: 4, customer_name: "David", product: "PenDrive", price: 10000, order_date: new Date("2022-04-20"), quantity: 3, customer_mobile: "4567890123" },
+  { order_id: 5, customer_name: "ABC", product: "Desktop", price: 70000, order_date: new Date("2022-05-15"), quantity: 1, customer_mobile: "5678901234" },
+  { order_id: 6, customer_name: "Eve", product: "Tablet", price: 15000, order_date: new Date("2021-11-20"), quantity: 8, customer_mobile: "6789012345" },
+  { order_id: 7, customer_name: "Frank", product: "PenDrive", price: 12000, order_date: new Date("2022-03-25"), quantity: 5, customer_mobile: "7890123456" },
+])
+
+
+
+
+
+Queries
+
+1. Display all documents in the collection.
+
+db.orders.find({})
+
+
+2. List the customers in ascending order of their names.
+
+db.orders.find({}).sort({ customer_name: 1 })
+
+
+3. Display all the orders placed before April 2022.
+
+db.orders.find({ order_date: { $lt: new Date("2022-04-01") } })
+
+
+4. Display the names of customers who purchased orders with a price more than 25000.
+
+db.orders.find({ price: { $gt: 25000 } }, { customer_name: 1 })
+
+
+5. Display all orders that contain the product "PenDrive".
+
+db.orders.find({ product: "PenDrive" })
+
+
+6. Update the order_date of any order purchased by customer “ABC”.
+
+
+db.orders.updateOne(
+  { customer_name: "ABC" },
+  { $set: { order_date: new Date("2023-01-01") } }
+)
+
+
+7. List all documents with orders that contain products whose quantity is less than 10.
+
+db.orders.find({ quantity: { $lt: 10 } })
+
+
+8. Display the mobile number of customers who have the highest buying total.
+
+db.orders.aggregate([
+  { $group: { _id: "$customer_mobile", total_spent: { $sum: "$price" } } },
+  { $sort: { total_spent: -1 } },
+  { $limit: 1 },
+  { $project: { _id: 0, customer_mobile: "$_id" } }
+])
+
+db.OMS2.aggregate([
+{$addFields: 
+{total_spent: {$multiply: ["$price", "$quantity"]
+}
+}
+}, 
+{$project: {customer_mobile: 1, total_spent: 1, _id: 0 } } ] )
+
+
+9. Perform Create Index, get Index, and drop index operation on the collection.
+
+// Create an index on the 'customer_name' field
+db.orders.createIndex({ customer_name: 1 })
+
+// Get the indexes
+db.orders.getIndexes()
+
+// Drop the index
+db.orders.dropIndex("customer_name_1")
+
+
+10. Using MapReduce/Aggregation, display total orders per customer.
+
+db.orders.aggregate([
+  { $group: { _id: "$customer_name", total_orders: { $sum: 1 } } }
+])
+
+
+use order_management
+
+var mapFunction = function() {
+  emit(this.customer_name, 1);
+};
+
+var reduceFunction = function(key, values) {
+  return Array.sum(values);
+};
+
+db.orders.mapReduce(
+  mapFunction,
+  reduceFunction,
+  { out: "total_orders_per_customer" }
+);
+
+db.total_orders_per_customer.find();
+

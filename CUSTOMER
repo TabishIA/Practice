@@ -1,0 +1,86 @@
+use yourDatabaseName  # Switch to your database
+db.createCollection("CUSTOMER")
+
+2. Insert Sample Data
+
+db.CUSTOMER.insertMany([
+    {Cust_No: 1001, First_Name: "John", Last_Name: "Doe", Address: "123 Main St", City: "Bangalore", State: "KARNATAKA", Pincode: 560001, B_Date: new Date("1980-01-01"), Status: "Married"},
+    {Cust_No: 1002, First_Name: "Jane", Last_Name: "Doe", Address: "456 Market St", City: "Mysore", State: "KARNATAKA", Pincode: 570001, B_Date: new Date("1990-02-15"), Status: "Unmarried"},
+    {Cust_No: 1003, First_Name: "James", Last_Name: "Smith", Address: "789 Hill St", City: "Pune", State: "MAHARASHTRA", Pincode: 411030, B_Date: new Date("1985-04-20"), Status: "Divorcee"},
+    {Cust_No: 1004, First_Name: "Alice", Last_Name: "Johnson", Address: "999 Park St", City: "Kochi", State: "KERALA", Pincode: 682001, B_Date: new Date("1992-12-12"), Status: "Married"},
+    {Cust_No: 1005, First_Name: "Bob", Last_Name: "Brown", Address: "555 Lake St", City: "Mangalore", State: "KARNATAKA", Pincode: 576201, B_Date: new Date("1987-06-05"), Status: "Unmarried"}  ])
+3. Queries
+
+a. Display all the documents where state is KARNATAKA
+
+db.CUSTOMER.find({State: "KARNATAKA"}).pretty()
+
+b. Delete the document where PIN CODE is 576201
+
+db.CUSTOMER.deleteOne({Pincode: 576201})
+
+
+c. Update the Address and Pincode where Cust_No is 1003
+
+db.CUSTOMER.updateOne(
+    {Cust_No: 1003},
+    {$set: {Address: "PICT, Trimurti chowk, Dhankawadi", Pincode: 411041}}
+)
+
+
+d. Display Total Number of Married, Unmarried, and Divorcee Customers
+
+db.CUSTOMER.aggregate([
+    { $group: { _id: "$Status", Total: { $sum: 1 } } }
+])
+
+
+e. Sort and display the customer data, in the alphabetical order of city
+
+db.CUSTOMER.find().sort({City: 1}).pretty()
+
+
+f. Retrieve records of Karnataka / Kerala customers who are Married
+
+db.CUSTOMER.find({
+    $and: [
+        {State: {$in: ["KARNATAKA", "KERALA"]}},
+        {Status: "Married"}
+    ]
+}).pretty()
+
+4. Index Operations
+
+a. Create Index on City
+
+db.CUSTOMER.createIndex({City: 1})
+
+b. Get all Indexes on the Collection
+
+db.CUSTOMER.getIndexes()
+
+c. Drop the Index on City
+
+db.CUSTOMER.dropIndex("City_1")
+
+
+5. MapReduce to Calculate Total Customers per City
+
+a. MapReduce function:
+
+db.CUSTOMER.mapReduce(
+    function() { emit(this.City, 1); }, 
+    function(key, values) { return Array.sum(values); }, 
+    { out: "customer_count_per_city" }
+)
+
+Display the Results:
+
+db.customer_count_per_city.find().pretty()
+
+b. Aggregate function:
+
+db.CUSTOMER.aggregate([
+  { $group: { _id: "$City", totalCustomers: { $sum: 1 } } }
+]);
+

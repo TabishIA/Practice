@@ -1,0 +1,74 @@
+use yourDatabaseName  # Switch to your database
+
+db.createCollection("employees")  # Create the employees collection
+
+db.employees.insertMany([
+    { empid: 1, ename: "John", city: "Pune", department: "IT", education: "M.Tech", salary: 40000, post: "Developer", joinDate: "2020-01-15", skills: ["Java", "MongoDB"] },
+    { empid: 2, ename: "Alice", city: "Mumbai", department: "CSE", education: "B.Tech", salary: 35000, post: "Analyst", joinDate: "2019-03-10", skills: ["Python", "Machine Learning"] },
+    { empid: 3, ename: "Bob", city: "Delhi", department: "Library", education: "M.Lib", salary: 30000, post: "Librarian", joinDate: "2018-05-22", skills: ["Cataloging", "Library Management"] },
+    { empid: 4, ename: "Eve", city: "Bangalore", department: "IT", education: "B.Sc", salary: 45000, post: "Manager", joinDate: "2021-07-12", skills: ["Project Management", "Networking"] },
+    { empid: 5, ename: "Jane", city: "Pune", department: "IT", education: "M.Sc", salary: 32000, post: "Support Engineer", joinDate: "2019-11-01", skills: ["Helpdesk", "IT Support"] },
+    { empid: 6, ename: "Raj", city: "Chennai", department: "FE", education: "MBA", salary: 50000, post: "Director", joinDate: "2017-09-15", skills: ["Leadership", "Finance"] },
+    { empid: 7, ename: "Kumar", city: "Pune", department: "CSE", education: "PhD", salary: 48000, post: "Professor", joinDate: "2015-02-10", skills: ["Artificial Intelligence", "Data Mining"] }
+])
+
+
+2. List Employees Earning Salary Between 30000 and 45000
+db.employees.find({salary: {$gte: 30000, $lte: 45000}}, {ename: 1, salary: 1, _id: 0}).pretty()
+
+
+
+
+3. List Departments with at Least Four Employees
+db.employees.aggregate([
+    { $group: { _id: "$department", employeeCount: { $sum: 1 } } },
+    { $match: { employeeCount: { $gte: 4 } } }
+])
+
+
+4. Find the Number of Employees Working in "IT" Department
+db.employees.countDocuments({department: "IT"})
+
+
+5. Display the Name of the Employee Who Gets the Maximum Salary
+db.employees.find().sort({salary: -1}).limit(1).pretty()
+
+
+6. Display the Name of the Department with the Most Employees
+db.employees.aggregate([
+    { $group: { _id: "$department", employeeCount: { $sum: 1 } } },
+    { $sort: { employeeCount: -1 } },
+    { $limit: 1 }
+])
+
+
+7. Update the Name of Department from ‘IT’ to “Information Technology”
+db.employees.updateMany({department: "IT"}, {$set: {department: "Information Technology"}})
+
+
+
+
+8. Index Operations
+a. Create an Index on ename
+db.employees.createIndex({ename: 1})
+
+b. Get All Indexes
+db.employees.getIndexes()
+
+c. Drop the Index on ename
+db.employees.dropIndex("ename_1")
+
+
+9. MapReduce/Aggregation to Display Total Number of Employees per Department
+Using Aggregation:
+db.employees.aggregate([
+    { $group: { _id: "$department", totalEmployees: { $sum: 1 } } }
+])
+
+Using MapReduce:
+db.employees.mapReduce(
+    function() { emit(this.department, 1); },
+    function(key, values) { return Array.sum(values); },
+    { out: "employee_count_per_department" }
+)
+

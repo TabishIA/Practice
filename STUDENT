@@ -1,0 +1,138 @@
+Step 1: Create the Students Collection and Insert Sample Data
+Create the Students collection and add sample documents.
+use StudentManagementDB; // Switch to or create the database
+
+db.createCollection("Students");
+
+// Sample data
+db.Students.insertMany([
+  { student_id: 1,
+    student_name: "Samir Patel",
+    address: "Baroda",
+    birthdate: new Date("2003-06-20"),
+    CGPA: 8.5,
+    fee: 10000,
+    current_year: "TE",
+    join_date: new Date("2020-08-01"),
+    department: "CSE",
+    skills: ["Programming", "Typing"]
+  },
+  {
+    student_id: 2,
+    student_name: "Mina Shah",
+    address: "Ahmedabad",
+    birthdate: new Date("2004-09-18"),
+    CGPA: 8.9,
+    fee: 12000,
+    current_year: "SE",
+    join_date: new Date("2021-07-15"),
+    department: "IT",
+    skills: ["Data Analysis", "Typing"]
+  },
+  {
+    student_id: 3,
+    student_name: "Rohit Mehta",
+    address: "Pune",
+    birthdate: new Date("2005-04-12"),
+    CGPA: 9.2,
+    fee: 13000,
+    current_year: "BE",
+    join_date: new Date("2019-07-20"),
+    department: "ET",
+    skills: ["Electronics", "Design"]
+  },
+  {
+    student_id: 4,
+    student_name: "Suresh Desai",
+    address: "Baroda",
+    birthdate: new Date("2003-06-20"),
+    CGPA: 7.9,
+    fee: 11000,
+    current_year: "FE",
+    join_date: new Date("2022-08-01"),
+    department: "CSE",
+    skills: ["Programming"]
+  }
+]);
+
+Step 2: Queries
+1. Display the count of total number of students from the institute
+db.Students.countDocuments();
+
+2. Display all students in seniority level (based on CGPA)
+db.Students.find().sort({ CGPA: -1 });
+
+3. List the student details that are from Baroda or Ahmedabad and in the CSE department
+db.Students.find({ 
+  address: { $in: ["Baroda", "Ahmedabad"] }, 
+  department: "CSE" 
+});
+
+4. List of student_id, student_name, department, and skills of students whose birthdate is the 20th of any month
+db.Students.find(
+  { $expr: { $eq: [{ $dayOfMonth: "$birthdate" }, 20] } },
+  { student_id: 1, student_name: 1, department: 1, skills: 1, _id: 0 }
+);
+
+5. Calculate the age of each student (considering today’s date)
+db.Students.aggregate([
+  {
+    $addFields: {
+      age: {
+        $dateDiff: { startDate: "$birthdate", endDate: new Date(), unit: "year" }
+      }
+    }
+  },
+  { $project: { student_name: 1, age: 1, _id: 0 } }
+]);
+
+6. List the name of students whose name starts with ‘S’ or ‘M’, who are in the computer department (CSE) and have "Typing" skill
+db.Students.find({
+  student_name: { $regex: "^[SM]", $options: "i" },
+  department: "CSE",
+  skills: "Typing"
+});
+
+7. Count the number of students in the IT department from Pune
+db.Students.countDocuments({ department: "IT", address: "Pune" });
+
+8. Arrange the student names in alphabetical order whose age is between 18 to 20 and in the ET department
+db.Students.aggregate([
+  {
+    $addFields: {
+      age: {
+        $dateDiff: { startDate: "$birthdate", endDate: new Date(), unit: "year" }
+      }
+    }
+  },
+  { $match: { age: { $gte: 18, $lte: 20 }, department: "ET" } },
+  { $sort: { student_name: 1 } }
+]);
+
+Step 3: Perform Index Operations
+Create an Index on student_name
+db.Students.createIndex({ student_name: 1 });
+
+Get Index Information
+db.Students.getIndexes();
+
+Drop the Index on student_name
+db.Students.dropIndex("student_name_1");
+
+Step 4: MapReduce or Aggregation Function to Display Total Number of Students from Each Department
+Using Aggregation
+db.Students.aggregate([
+  { $group: { _id: "$department", total_students: { $sum: 1 } } }
+]);
+
+Using MapReduce
+db.Students.mapReduce(
+  function() { emit(this.department, 1); },
+  function(key, values) { return Array.sum(values); },
+  { out: "TotalStudentsPerDepartment" }
+);
+
+// Retrieve the MapReduce result
+db.TotalStudentsPerDepartment.find();
+
+

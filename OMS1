@@ -1,0 +1,91 @@
+use yourDatabaseName  # Switch to your database
+
+db.createCollection("orders")  # Create the orders collection
+
+db.orders.insertMany([
+    { OrderID: 101, CustomerName: "John", City: "Pune", Products: [{ProductName: "Mobile", Quantity: 1, Price: 15000}, {ProductName: "Laptop", Quantity: 1, Price: 50000}], TotalAmount: 65000 },
+    { OrderID: 102, CustomerName: "Alice", City: "Mumbai", Products: [{ProductName: "Shoes", Quantity: 2, Price: 5000}, {ProductName: "Cloth", Quantity: 3, Price: 3000}], TotalAmount: 19000 },
+    { OrderID: 103, CustomerName: "Bob", City: "Pune", Products: [{ProductName: "Laptop", Quantity: 1, Price: 45000}], TotalAmount: 45000 },
+    { OrderID: 104, CustomerName: "Eve", City: "Delhi", Products: [{ProductName: "Shoes", Quantity: 1, Price: 3000}, {ProductName: "Cloth", Quantity: 2, Price: 2000}], TotalAmount: 5000 },
+    { OrderID: 105, CustomerName: "Jane", City: "Bangalore", Products: [{ProductName: "Mobile", Quantity: 2, Price: 15000}], TotalAmount: 30000 }
+])
+
+2. Retrieve All the Documents from the Collection
+db.orders.find().pretty()
+
+
+
+3. List the Name of Customers Who Purchased the Product “Mobile”
+db.orders.find({"Products.ProductName": "Mobile"}, {CustomerName: 1, _id: 0})
+
+
+4. Change the Product Quantity from 1 to 3 for Product "Laptop" of Any Order
+db.orders.updateOne(
+    {"Products.ProductName": "Laptop", "Products.Quantity": 1},
+    {$set: {"Products.$.Quantity": 3}}
+)
+
+
+5. Using $exists, Find How Many Customers Belong to Pune City
+db.orders.countDocuments({City: {$exists: true, $eq: "Pune"}})
+
+
+6. Find the Customer Who Purchased Both Shoes and Cloth Products
+db.orders.find({
+    $and: [
+        {"Products.ProductName": "Shoes"},
+        {"Products.ProductName": "Cloth"}
+    ]
+}).pretty()
+
+
+7. Find the Top 3 Buyers (By TotalAmount)
+db.orders.find().sort({TotalAmount: -1}).limit(3).pretty()
+
+
+8. Display All the Orders Where Total Amount is Greater Than 20000
+db.orders.find({TotalAmount: {$gt: 20000}}).pretty()
+
+
+9. Index Operations
+a. Create Index on CustomerName
+db.orders.createIndex({CustomerName: 1})
+b. Get All Indexes on the Collection
+db.orders.getIndexes()
+
+c. Drop the Index on CustomerName
+db.orders.dropIndex("CustomerName_1")
+
+10. MapReduce or Aggregation Function to Calculate Total Price Per Order
+Using Aggregation:
+db.orders.aggregate([
+    { $unwind: "$Products" },
+    { $group: { _id: "$OrderID", TotalPrice: { $sum: { $multiply: ["$Products.Quantity", "$Products.Price"] } } } }
+])
+db.Orders.aggregate([
+  { $project: { OrderID: 1, TotalPrice: "$TotalAmount" } }
+]);
+
+
+
+Using MapReduce:
+db.orders.mapReduce(
+    function() {
+        var total = 0;
+        this.Products.forEach(function(product) {
+            total += product.Quantity * product.Price;
+        });
+        emit(this.OrderID, total);
+    },
+    function(key, values) {
+        return Array.sum(values);
+    },
+    { out: "total_price_per_order" }
+)
+
+db.Orders.mapReduce(
+  function() { emit(this.OrderID, this.TotalAmount); },
+  function(key, values) { return Array.sum(values); },
+  { out: "TotalPricePerOrder" }
+);
+
